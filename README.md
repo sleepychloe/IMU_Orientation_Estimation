@@ -71,7 +71,7 @@ A quaternion expresses "rotation by θ around some axis".<br>
 	in other words:
 
 	w = cos(θ/2),
-	(x, y, z) = u * sin(θ/2), where ||u|| = 1
+	(x, y, z) = u⋅sin(θ/2), where ||u|| = 1
 ```
 <br>
 <br>
