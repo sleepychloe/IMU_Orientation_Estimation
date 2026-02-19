@@ -1,7 +1,7 @@
 import numpy as np
 from typing import overload
-from my_types import ScalarBatch, Vec3, Quat, Vec3Batch, QuatBatch
-from my_types import as_scalar_batch, as_vec3_batch, as_quat_batch
+
+from my_types import ScalarBatch, Vec3Batch, QuatBatch
 
 @overload
 def resample_batch(t_new: ScalarBatch, t_src: ScalarBatch, src: Vec3Batch) -> Vec3Batch: ...
