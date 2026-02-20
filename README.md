@@ -23,6 +23,9 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [3D Rotation](#quaternion-rotation-3d) <br>
 
 
+<br>
+<br>
+
 ## IMU Orientation Estimation <a name="orientation">
 
 The physical modeling and implementation logic behind orientation estimation using:<br>
