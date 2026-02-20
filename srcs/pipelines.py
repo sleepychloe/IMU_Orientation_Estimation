@@ -67,8 +67,14 @@ def calc_acc_gating(g0: float, gate_sigma: float, a_meas: Vec3) -> float:
         weight_acc : float = np.exp(-0.5 * (dev / gate_sigma) ** 2)
         return weight_acc
 
+def calc_gyro_gating(w_sigma: float, w: Vec3) -> float:
+        w_norm: float = float(np.linalg.norm(w))
+        weight_gyro: float = np.exp(-0.5 * (w_norm / w_sigma) ** 2)
+        return weight_gyro
+
 def integrate_gyro_acc(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
-                       K: float, g0: float, g_world_unit: Vec3, gate_sigma: float, a_src: Vec3Batch
+                       K: float, g0: float, g_world_unit: Vec3,
+                       acc_gate_sigma: float, gyro_gate_sigma: float, a_src: Vec3Batch
                        ) -> tuple[QuatBatch, Vec3Batch, Vec3Batch]:
         """
         Returns:
@@ -88,7 +94,10 @@ def integrate_gyro_acc(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
                 a_meas: Vec3 = select_acc_measurement(a_src[i].copy(), g_pred.copy())
                 a_unit: Vec3 = safe_unit(a_meas)
 
-                weight_acc: float = calc_acc_gating(g0, gate_sigma, a_meas)
+                weight_acc: float = calc_acc_gating(g0, acc_gate_sigma, a_meas)
+                weight_gyro: float = calc_gyro_gating(gyro_gate_sigma, w_avg[i])
+                weight_acc *= weight_gyro
+
                 e_axis: Vec3 = np.cross(g_pred, a_unit)
                 dq_corr: Quat = small_angle_correction_quat(K * weight_acc, e_axis)
 
@@ -122,8 +131,77 @@ def calc_mag_gating(m0: float, gate_sigma: float, m_meas: Vec3,
         m_pred: Vec3 = libq.rotate_world_to_body(q_pred, m_world_h_unit)
         m_pred_h: Vec3 = safe_unit(m_pred - np.dot(m_pred, g_pred) * g_pred)
         e_axis_mag: Vec3 = np.cross(m_body_h, m_pred_h)
+        #e_axis_mag: Vec3 = np.cross(m_pred_h, m_body_h)
         return weight_mag, e_axis_mag
 
+#def integrate_gyro_acc_mag(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
+#                       K_acc: float, g0: float, g_world_unit: Vec3,
+#                       acc_gate_sigma: float, gyro_gate_sigma: float,
+#                       a_floor: float, m_floor: float, a_src: Vec3Batch,
+#                       K_mag: float, m0: float, m_world_h_unit:Vec3,
+#                       mag_gate_sigma: float, m_src: Vec3Batch
+#                       ) -> tuple[QuatBatch, Vec3Batch, Vec3Batch]:
+#        """
+#        Returns:
+#                res (q_gyro_acc_mag): (N,4) QuatBatch
+#                g_body_est: (N,3) Vec3Batch
+#                a_lin_est: (N,3) Vec3Batch
+#        """
+#        q: Quat = q0.copy()
+#        res: QuatBatch = as_quat_batch(np.zeros((len(dt), 4)))
+#        g_body_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
+#        a_lin_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
+
+#        wg_list = []
+#        wa_list = []
+#        wm_list = []
+#        dev_list = []
+
+#        for i in range(len(dt)):
+#                q_pred: Quat = gyro_predict(q, w_avg[i], dt[i])
+
+#                g_pred: Vec3 = predict_gravity_body_frame(q_pred, g_world_unit)
+#                a_meas: Vec3 = select_acc_measurement(a_src[i].copy(), g_pred.copy())
+#                a_unit: Vec3 = safe_unit(a_meas)
+
+#                dev: float = abs(float(np.linalg.norm(a_meas)) - g0)
+#                weight_acc = float(np.exp(-(dev / acc_gate_sigma)**4))
+#                e_axis_acc: Vec3 = np.cross(g_pred, a_unit)
+
+#                m_meas: Vec3 = m_src[i].copy()
+#                weight_gyro: float = calc_gyro_gating(gyro_gate_sigma, w_avg[i])
+#                weight_mag, e_axis_mag = calc_mag_gating(m0, mag_gate_sigma, m_meas,
+#                                                         q_pred, g_pred, m_world_h_unit)
+#                mag_err_sigma: float = 0.3
+#                weight_mag *= float(np.exp(-0.5 * ((np.linalg.norm(e_axis_mag)) / mag_err_sigma) ** 2))
+        
+#                e_axis: Vec3 = K_acc * weight_acc * e_axis_acc + K_mag * weight_mag * e_axis_mag
+#                dq_corr: Quat = small_angle_correction_quat(1, e_axis)
+
+#                q = libq.quat_norm(libq.quat_mul(q_pred, dq_corr))
+#                res[i] = q
+
+#                g_body_est[i] = libq.rotate_world_to_body(q, g_world_unit) * g0
+#                a_lin_est[i] = a_src[i] + g_body_est[i]
+                
+                
+                
+#                wg_list.append(weight_gyro)
+#                wa_list.append(weight_acc)
+#                wm_list.append(weight_mag)
+#                dev_list.append(dev)
+        
+        
+#        wg = np.array(wg_list, dtype=np.float64)
+#        wa = np.array(wa_list, dtype=np.float64)
+#        wm = np.array(wm_list, dtype=np.float64)
+#        d = np.array(dev_list, dtype=np.float64)
+#        print("weight_gyro pcts:", np.percentile(wg, [0,25,50,75,90,95,99]))
+#        print("weight_acc  pcts:", np.percentile(wa, [0,25,50,75,90,95,99]))
+#        print("weight_mag  pcts:", np.percentile(wm, [0,25,50,75,90,95,99]))
+#        print("dev  pcts:", np.percentile(d, [0,25,50,75,90,95,99]))
+#        print("")
+#        return res, g_body_est, a_lin_est
 
 def integrate_gyro_acc_mag(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
                        K_acc: float, g0: float, g_world_unit: Vec3, acc_gate_sigma: float, a_src: Vec3Batch,
@@ -140,12 +218,18 @@ def integrate_gyro_acc_mag(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
         g_body_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
         a_lin_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
 
+        wa_list = []
+        wm_list = []
+        dev_list = []
+
         for i in range(len(dt)):
                 q_pred: Quat = gyro_predict(q, w_avg[i], dt[i])
 
                 g_pred: Vec3 = predict_gravity_body_frame(q_pred, g_world_unit)
                 a_meas: Vec3 = select_acc_measurement(a_src[i].copy(), g_pred.copy())
                 a_unit: Vec3 = safe_unit(a_meas)
+
+                dev: float = abs(float(np.linalg.norm(a_meas)) - g0)
 
                 weight_acc: float = calc_acc_gating(g0, acc_gate_sigma, a_meas)
                 e_axis_acc: Vec3 = np.cross(g_pred, a_unit)
@@ -162,4 +246,16 @@ def integrate_gyro_acc_mag(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
 
                 g_body_est[i] = libq.rotate_world_to_body(q, g_world_unit) * g0
                 a_lin_est[i] = a_src[i] + g_body_est[i]
+
+                wa_list.append(weight_acc)
+                wm_list.append(weight_mag)
+                dev_list.append(dev)
+        
+        wa = np.array(wa_list, dtype=np.float64)
+        wm = np.array(wm_list, dtype=np.float64)
+        d = np.array(dev_list, dtype=np.float64)
+        print("weight_acc  pcts:", np.percentile(wa, [0,25,50,75,90,95,99]))
+        print("weight_mag  pcts:", np.percentile(wm, [0,25,50,75,90,95,99]))
+        print("dev  pcts:", np.percentile(d, [0,25,50,75,90,95,99]))
+        print("")
         return res, g_body_est, a_lin_est

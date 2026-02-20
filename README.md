@@ -1,5 +1,16 @@
 ## Lists
 
+ * [IMU Orientation Estimation](#orientation) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Coordinate Frame](#orientation-coordinate) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [World Frame (Inertial Frame)](#orientation-coordinate-world) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Body Frame (Sensor Frame)](#orientation-coordinate-body) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Sensor Model](#orientation-sensor) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Gyroscope](#orientation-sensor-gyro) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Accelerometer](#orientation-sensor-acc) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Magnetometer](#orientation-sensor-mag) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Gravity vs Magnetic Field](#orientation-grav-mag) <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Initial Magnetic Reference (Yaw Anchor)](#orientation-grav-mag-init-mag-ref) <br>
+
  * [Quaternion](#quaternion) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Quaternion](#quaternion-quaternion) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Axis-Angle to Quaternion](#quaternion-axis-angle-to-quaternion) <br>
@@ -10,6 +21,234 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Rotation](#quaternion-rotation) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [2D Rotation](#quaternion-rotation-2d) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [3D Rotation](#quaternion-rotation-3d) <br>
+
+
+## IMU Orientation Estimation <a name="orientation">
+
+The physical modeling and implementation logic behind orientation estimation using:<br>
+
+- Gyroscope
+- Accelerometer
+- Magnetometer
+<br>
+
+The orientation is represented using a quaternion `q` that maps:<br>
+
+```
+	q : body -> world
+```
+
+<br>
+<br>
+
+### Coordinate Frame <a name="orientation-coordinate">
+
+#### World Frame (Inertial Frame) <a name="orientation-coordinate-world">
+
+The world frame is fixed.<br>
+<br>
+
+Gravity is assumed constant:<br>
+
+```
+	g_world = (0, 0, -g0),
+	|| g_world|| = g0
+
+	g0 ≈ 9.81 m/s²
+```
+<br>
+<br>
+
+
+#### Body Frame (Sensor Frame) <a name="orientation-coordinate-body">
+
+The body frame is attached to the device (smartphone).<br>
+
+All sensors measure in the body frame.<br>
+
+When the device rotates:<br>
+
+```
+	g_world = (0, 0, -g0),
+	g_body = (g1, g2, g3),
+	||g_body|| = g0
+
+
+```
+<br>
+
+Quaternion definition:<body>
+
+```
+	v_world = R(q) ⋅ v_body
+	v_body = R(q)ᵀ ⋅ v_world
+```
+<br>
+<br>
+<br>
+
+## Sensor Model <a name="orientation-sensor">
+
+### Gyroscope <a name="orientation-sensor-gyro">
+
+Measurement model:<br>
+
+```
+	𝜔_meas(t) = 𝜔_true(t) + b_g + n_gyro(t)
+
+	b_g: gyro bias
+	n_gyro: measurement noise
+```
+
+Bias can be estimated during stationary periods.<br>
+
+<br>
+<br>
+
+### Accelerometer <a name="orientation-sensor-acc">
+
+The accelerometer measures proper acceleration.<br>
+<br>
+
+World frame:<br>
+
+```
+	a_proper_world = a_linear_world - g_world
+```
+<br>
+
+Body frame:<br>
+
+```
+	a_apparent_body = R(q)ᵀ⋅(a_linear_world - g_world)
+```
+<br>
+
+Measurement model:<br>
+
+```
+	a_meas(t) = R(q)ᵀ⋅(a_linear_world - g_world) + b_a + n_acc(t)
+
+	b_a: acc bias
+	n_acc: measurement noise
+```
+<br>
+
+At rest (a_linear_world = 0):<br>
+
+```
+	a_meas ≈ - R(q)ᵀ⋅g_world,
+
+	a_meas / ||a_meas|| ≈ - g_body / ||g_body|| = - g_body_unit
+
+```
+
+<br>
+<br>
+
+### Magnetometer <a name="orientation-sensor-mag">
+
+Measurement model:<br>
+```
+	m_meas(t) = m_body(t) + b_m + distortions + n_mag(t)
+
+	b_m: mag bias
+	n_mag: measurement noise
+```
+<br>
+
+Ideal case:<br>
+
+```
+	m_body = R(q)ᵀ⋅ m_world
+```
+<br>
+Distortions include:<br>
+
+- Hard-iron offset
+- Soft-iron scaling (3*3 matrix)
+
+<br>
+Thus magnetometer reliability requires:<br>
+
+- Norm gate
+- Innovation gate
+- Calibration
+
+<br>
+<br>
+<br>
+
+### Gravity vs Magnetic Field <a name="orientation-grav-mag">
+
+Gravity:<br>
+
+- Nearly constant magnitude
+- Direction fixed in world frame
+- ||g_world|| = g0
+<br>
+
+Magnetic field:<br>
+
+- Magnitude varies by location
+- Affected by indoor environment
+- Yaw reference is not physically absolute
+<br>
+
+Two possible heading references in magnetic field:<br>
+
+1. Absolute heading (true north, declination corrected)
+2. Relative heading (initial direction = yaw 0, often more stable indoors)
+
+<br>
+<br>
+<br>
+
+#### Initial Magnetic Reference (Yaw Anchor) <a name=orientation-grav-mag-init-mag-ref>
+
+Goal: `m_ref_world_h`, used to correct yaw drift.<br>
+<br>
+
+1. Stationary Detection
+
+For reliable bias estimation:
+
+```
+	1. | ||a_meas|| - g0| ≈ 0
+	2. |𝜔| ≈ 0
+```
+
+2. Horizontal Projection
+
+```
+	m̂ = m_meas / ||m_meas||
+	m_body_h = m̂ - (m̂ ⋅ g_body_unit) * g_body_unit
+	m̂_body_h = m_body_h / ||m_body_h||
+```
+
+<br>
+<br>
+
+3. Transform to world frame
+
+```
+	m̂_world_h = R(q_pred)⋅ m̂_body_h
+	                    Σ_{t ∈ T} w(t) * m̂_world_h(t)
+	m_ref_world_h = ────────────────────────────────────
+	                 || Σ_{t ∈ T} w(t) * m̂_world_h(t) ||
+
+	T: initial stable window
+	w(t): weighting (stationary + norm gate)
+``` 
+
+<br>
+
+This defines a stable yaw reference without requiring absolute north.<br>
+
+<br>
+<br>
+<br>
+<br>
 
 
 ## Quaternion <a name="quaternion"></a>
@@ -223,6 +462,7 @@ which is interpreted:<br>
 2. rotate by quaternion multiplication
 3. project back to 3D vector
 
+<br>
 <br>
 <br>
 <br>
