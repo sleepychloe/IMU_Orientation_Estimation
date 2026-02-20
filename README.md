@@ -221,6 +221,8 @@ For reliable bias estimation:
 	2. |𝜔| ≈ 0
 ```
 
+<br>
+
 2. Horizontal Projection
 
 ```
@@ -229,7 +231,6 @@ For reliable bias estimation:
 	m̂_body_h = m_body_h / ||m_body_h||
 ```
 
-<br>
 <br>
 
 3. Transform to world frame
