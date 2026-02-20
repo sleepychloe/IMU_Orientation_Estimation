@@ -214,11 +214,10 @@ Goal: `m_ref_world_h`, used to correct yaw drift.<br>
 
 1. Stationary Detection
 
-For reliable bias estimation:
-
 ```
-	1. | ||a_meas|| - g0| ≈ 0
-	2. |𝜔| ≈ 0
+	For reliable bias estimation:
+		1. | ||a_meas|| - g0| ≈ 0
+		2. |𝜔| ≈ 0
 ```
 
 <br>
