@@ -3,7 +3,7 @@ Currently in progress
 
 ## Lists
 
- * [Understanding Coordinate Systems and Sensors for IMU Orientation Estimation](#orientation) <br>
+ * [Understanding Coordinate Systems and Sensors](#orientation) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Coordinate Frame](#orientation-coordinate) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [World Frame (Inertial Frame)](#orientation-coordinate-world) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Body Frame (Sensor Frame)](#orientation-coordinate-body) <br>
@@ -36,7 +36,7 @@ Currently in progress
 <br>
 <br>
 
-## Understanding Coordinate Systems and Sensors for IMU Orientation Estimation <a name="orientation">
+## Understanding Coordinate Systems and Sensors <a name="orientation">
 
 The physical modeling and implementation logic behind orientation estimation using:<br>
 
@@ -528,10 +528,13 @@ I observed that gyro-based stationary gating improves Gyro+Acc performance, but 
 <br>
 
 In Gyro+Acc, a gyro-based stationary gate (small ||ω||) helps because it reduces the probability of applying accelerometer-based gravity correction during motion.<br>
+
 <br>
+
 During translation, ||a𝑚𝑒𝑎𝑠|| often deviates from g0,<br>
 meaning the accelerometer direction is no longer a clean gravity measurement and can inject incorrect tilt corrections.<br>
 
+<br>
 <br>
 
 However, in Gyro+Acc+Mag, magnetometer yaw correction depends on a stable tilt estimate (roll/pitch),<br>
@@ -546,6 +549,7 @@ If gyro gating suppresses accel correction too aggressively (especially during r
 The destabilizes g𝑒𝑠𝑡_𝑏𝑜𝑑𝑦_𝑢𝑛𝑖𝑡, which makes tilt compensation less reliable, and can corrupt the magnetometer error axis,<br>
 worsening the yaw correction even when mag gating is enabled.<br>
 
+<br>
 <br>
 
 Conculution:<br>
