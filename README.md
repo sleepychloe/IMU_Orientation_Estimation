@@ -3,6 +3,15 @@ Currently in progress
 
 ## Lists
 
+ * [Project IMU Orientation Estimation](#project) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Introduction](#project-intro) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Why a reference is needed — Sensor Logger orientation as REF)](#project-ref) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Why trimming the initial seconds matters — Fair Comparison)](#project-fair-comparison) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Experimental roadmap (progressive complexity)](#project-exp) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 1 — Gyro-only propagation](#project-exp-1) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 2 — Gyro + Accelerometer (roll/pitch correction)](#project-exp-2) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 3 — Gyro + Accelerometer + Magnetometer (yaw correction)](#project-exp-3) <br>
+
  * [Understanding Coordinate Systems and Sensors](#orientation) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Coordinate Frame](#orientation-coordinate) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [World Frame (Inertial Frame)](#orientation-coordinate-world) <br>
@@ -36,7 +45,120 @@ Currently in progress
 <br>
 <br>
 
-## Understanding Coordinate Systems and Sensors <a name="orientation">
+## Project IMU Orientation Estimation <a name="project"></a>
+
+### Introduction <a name="project-intro"></a>
+
+This project focuses on building a custom orientation estimation pipeline from IMU data (gyroscope, accelerometer, magnetometer).<br>
+
+<br>
+
+The goal is not to use a black-box sensor fusion library, but to implement orientation estimation from first principles and understand the full chain of reasoning:<br>
+how each sensor behaves, how errors accumulate, and how different correction strategies affect stability and drift.<br>
+
+<br>
+<br>
+
+The project emphasizes:<br>
+- Low-level quaternion-based orientation modeling (frame conventions, quaternion dynamics, vector rotations)
+- Drift analysis of gyro-only integration and why correction is necessary
+- Real-world evaluation methodology using recorded logs and quantitative error metrics
+- Structured debugging through controlled experiments (ablation-style comparison of gating/correction options)
+
+<br>
+<br>
+
+The long-term goal is to build a robust and fully controlled orientation estimation framework that remains stable in real-world dynamic environments (indoor/outdoor transitions, transportation, varying motion patterns).<br>
+
+<br>
+<br>
+<br>
+
+### Why a reference is needed — Sensor Logger orientation as REF <a name="project-ref"></a>
+
+To debug and evaluate the estimator, this project uses the orientation provided by the Sensor Logger application as a reference (REF).<br>
+
+<br>
+
+REF is not treated as perfect ground truth, it is a practical baseline that helps validate implementation correctness and identify failure modes.<br>
+
+<br>
+
+The workflow is intentionally comparative:<br>
+
+- Extract IMU streams (gyro/acc/mag) from recorded logs
+- Extract Sensor Logger orientation as REF
+- Produce a custom orientation estimate from IMU integration + corrections
+- Compute angular error between the estimate and REF
+- Analyze drift, transients, and long-horizon behavior
+- Iterate on filtering, gating, and calibration logic
+
+<br>
+<br>
+<br>
+
+### Why trimming the initial seconds matters — Fair Comparison <a name="project-fair-comparison"></a>
+
+A key observation is that the first seconds of a log often contain transient effects — sensor warm-up, bias settling, initial user motion, and convergence of the reference filter.<br>
+
+<br>
+
+These effects can inflate error metrics even when the estimator is correct, and can mislead tuning decisions.<br>
+
+<br>
+
+For this reason, evaluation is performed after trimming an initial stabilization window.<br>
+This provides a more fair comparison focused on the behavior that matters for long-term tracking (gyro drift + correction performance), rather than start-up artifacts.<br>
+
+
+<br>
+<br>
+<br>
+
+### Experimental roadmap (progressive complexity) <a name="project-exp"></a>
+
+The estimator is developed and validated through a sequence of experiments,<br>
+starting from the simplest model and progressively adding corrections and trust control (gating).<br>
+Each stage is evaluated using the same error pipeline against REF.<br>
+
+<br>
+
+This progression makes it possible to separate and understand each error source,<br>
+such as gyro bias/drift, gravity misinterpretation during translation, magnetic disturbances indoors, and the interaction between tilt estimation and yaw correction.<br>
+
+<br>
+<br>
+
+#### Experiment 1 — Gyro-only propagation <a name="project-exp-1"></a>
+
+- Integrate angular velocity to propagate orientation
+- Observe drift accumulation over time
+- Justify and quantify the impact of initial trimming using before/after plots and statistics
+
+<br>
+<br>
+
+#### Experiment 2 — Gyro + Accelerometer (roll/pitch correction) <a name="project-exp-2"></a>
+
+- [exp 2-1] No gating (always trust accelerometer)
+- [exp 2-2] Accelerometer gating (trust gravity only when ||a|| ≈ g0)
+- [exp 2-3] Gyro + Accelerometer gating (stationary-aware weighting)
+
+<br>
+<br>
+
+#### Experiment 3 — Gyro + Accelerometer + Magnetometer (yaw correction) <a name="project-exp-3"></a>
+
+- [exp 3-1] No gating (always trust magnetometer)
+- [exp 3-2] Gyro + Accelerometer gating
+- [exp 3-3] Gyro + Accelerometer + Magnetometer gating (norm + innovation gating)
+
+<br>
+<br>
+<br>
+<br>
+
+## Understanding Coordinate Systems and Sensors <a name="orientation"></a>
 
 The physical modeling and implementation logic behind orientation estimation using:<br>
 
@@ -54,9 +176,9 @@ The orientation is represented using a quaternion `q` that maps:<br>
 <br>
 <br>
 
-### Coordinate Frame <a name="orientation-coordinate">
+### Coordinate Frame <a name="orientation-coordinate"></a>
 
-#### World Frame (Inertial Frame) <a name="orientation-coordinate-world">
+#### World Frame (Inertial Frame) <a name="orientation-coordinate-world"></a>
 
 <img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/00_coord_world.png" width="610" height="255">
 
@@ -75,7 +197,7 @@ Gravity is assumed constant:<br>
 <br>
 
 
-#### Body Frame (Sensor Frame) <a name="orientation-coordinate-body">
+#### Body Frame (Sensor Frame) <a name="orientation-coordinate-body"></a>
 
 <img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/01_coord_body.png" width="610" height="255">
 
@@ -102,9 +224,9 @@ Quaternion definition:<body>
 <br>
 <br>
 
-## Sensor Model <a name="orientation-sensor">
+## Sensor Model <a name="orientation-sensor"></a>
 
-### Gyroscope <a name="orientation-sensor-gyro">
+### Gyroscope <a name="orientation-sensor-gyro"></a>
 
 Measurement model:<br>
 
@@ -120,7 +242,7 @@ Bias can be estimated during stationary periods.<br>
 <br>
 <br>
 
-### Accelerometer <a name="orientation-sensor-acc">
+### Accelerometer <a name="orientation-sensor-acc"></a>
 
 The accelerometer measures proper acceleration.<br>
 <br>
@@ -160,7 +282,7 @@ At rest (a_linear_world = 0):<br>
 <br>
 <br>
 
-### Magnetometer <a name="orientation-sensor-mag">
+### Magnetometer <a name="orientation-sensor-mag"></a>
 
 Measurement model:<br>
 ```
@@ -194,7 +316,7 @@ Thus magnetometer reliability requires:<br>
 <br>
 <br>
 
-### Gravity vs Magnetic Field <a name="orientation-grav-mag">
+### Gravity vs Magnetic Field <a name="orientation-grav-mag"></a>
 
 Gravity:<br>
 
@@ -219,7 +341,7 @@ Two possible heading references in magnetic field:<br>
 <br>
 <br>
 
-#### Initial Magnetic Reference (Yaw Anchor) <a name=orientation-grav-mag-init-mag-ref>
+#### Initial Magnetic Reference (Yaw Anchor) <a name="orientation-grav-mag-init-mag-ref"></a>
 
 Goal: `m_ref_world_h`, used to correct yaw drift.<br>
 <br>
@@ -266,7 +388,7 @@ This defines a stable yaw reference without requiring absolute north.<br>
 <br>
 <br>
 
-## Implementation – IMU Orientation Estimation <a name=implementation></a>
+## Implementation – IMU Orientation Estimation <a name="implementation"></a>
 
 Implementation logic of quaternion-based orientation estimation using:<br>
 
