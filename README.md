@@ -6,11 +6,11 @@ Currently in progress
  * [Project IMU Orientation Estimation](#project) <br>
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Introduction](#project-intro) <br>
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Why a reference is needed — Sensor Logger orientation as REF)](#project-ref) <br>
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Why trimming the initial seconds matters — Fair Comparison)](#project-fair-comparison) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Why trimming the initial seconds matters — Fair Comparison](#project-fair-comparison) <br>
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Experimental roadmap (progressive complexity)](#project-exp) <br>
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 1 — Gyro-only propagation](#project-exp-1) <br>
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 2 — Gyro + Accelerometer (roll/pitch correction)](#project-exp-2) <br>
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 3 — Gyro + Accelerometer + Magnetometer (yaw correction)](#project-exp-3) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 2 — Gyro + Accelerometer](#project-exp-2) <br>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 3 — Gyro + Accelerometer + Magnetometer](#project-exp-3) <br>
 
  * [Understanding Coordinate Systems and Sensors](#orientation) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Coordinate Frame](#orientation-coordinate) <br>
