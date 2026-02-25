@@ -12,6 +12,14 @@ Currently in progress
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 2 — Gyro + Accelerometer](#project-exp-2) <br>
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Experiment 3 — Gyro + Accelerometer + Magnetometer](#project-exp-3) <br>
 
+ * [Experiment Result Shortcut](#exp) <br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Experiment 1 — Gyro-only propagation](#exp-1) <br>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [[exp 1-1] No initial sample cut](#exp-1-1) <br>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [[exp 1-2] Initial stabilization trimmed](#exp-1-2) <br>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [Conclusion](#exp-1-conclusion) <br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Experiment 2 — Gyro + Accelerometer](#exp-2) <br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Experiment 3 — Gyro + Accelerometer + Magnetometer](#exp-3) <br>
+
  * [Understanding Coordinate Systems and Sensors](#orientation) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- [Coordinate Frame](#orientation-coordinate) <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⋅ [World Frame (Inertial Frame)](#orientation-coordinate-world) <br>
@@ -156,6 +164,131 @@ such as gyro bias/drift, gravity misinterpretation during translation, magnetic 
 <br>
 <br>
 <br>
+
+## Experiment Result Shortcut <a name="exp"></a>
+
+Full experimental process and results:<br>
+
+- [Experiment 1](https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/experiment/exp1.md)
+- [Experiment 2]()
+- [Experiment 3]()
+
+<br>
+<br>
+
+### Experiment 1 — Gyro-only propagation <a name="exp-1"></a>
+
+<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp1/data03_exp1.png" width="952" height="311">
+
+This dataset clearly illustrates why initial stabilization trimming is necessary,<br>
+and why gyro-only orientation estimation is fundamentally unstable over long durations.<br>
+
+<br>
+<br>
+
+#### [exp 1-1] No initial sample cut <a name="exp1-1"></a>
+
+The initial quaternion was aligned with the reference at `t = 0 s`,<br>
+and orientation was propagated using pure gyro integration.<br>
+
+<br>
+
+##### Result
+
+- Mean error ≈ 2.98634rad (171.10°)
+- p90 error ≈ 3.12675rad (179.15°)
+
+<br>
+
+##### Observation
+
+The orientation collapsed close to a 180° inversion.<br>
+
+<br>
+
+Once the error approaches π radians, the estimate becomes effectively flipped relative to the reference orientation.<br>
+
+<br>
+
+This demonstrates:<br>
+
+- Gyro integration accumulates bias over time
+- Early transient misalignment can permanently corrupt orientation
+- Long-horizon drift is unavoidable without correction
+
+<br>
+<br>
+
+#### [exp 1-2] Initial stabilization trimmed <a name="exp1-2">
+
+Instead of cutting a fixed number of seconds, an automatic stabilization detector was applied.<br>
+<br>
+
+The detector perfoms:<br>
+
+- Slide a 10-second window
+- Integrate gyro inside the window
+- Compute p90 angular error against REF
+- Detect stabilization when `p90 < threshold` for consecutive windows
+
+<br>
+
+For this dataset, stabilization detected at `t = 23 s`.<br>
+
+<br>
+
+##### Result
+
+- Mean error ≈ 0.53778rad (30.81°)
+- p90 error ≈ 0.81277rad (46.57°)
+
+<br>
+
+##### Observation
+
+Drift shows the expected gradual accumulation pattern:<br>
+
+- Error grows slowly due to bias
+- No catastrophic 180° collapse
+- Drift pattern becomes interpretable
+
+<br>
+<br>
+
+#### Conculusion <a name="exp1-conclusion">
+
+Experiment 1-1 and 1-2 shows that:<br>
+
+- Early transient misalignment can dominate global error statistics
+- Even after trimming, gyro-only estimation drifts steadily
+
+<br>
+
+Therefore:<br>
+
+- Initial trimming is necessary for fair evaluation
+- Sensor fusion (accelerometer + magnetometer correction) is required for long-term stability
+
+<br>
+
+This directly motivates Experiment 2 and Experiment 3.<br>
+
+<br>
+<br>
+<br>
+
+<!--### Experiment 2 — Gyro + Accelerometer <a name="exp-2"></a>
+
+<br>
+<br>
+<br>
+
+### Experiment 3 — Gyro + Accelerometer + Magnetometer <a name="exp-3"></a>
+
+<br>
+<br>
+<br>
+<br>-->
 
 ## Understanding Coordinate Systems and Sensors <a name="orientation"></a>
 
