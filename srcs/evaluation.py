@@ -9,8 +9,8 @@ import lib_quat as libq
 
 """
 Calculating relative rotation (error quaternion)
-q_err = q_custom⁻¹ ⊗ q_ref
-(q_custom ⊗ q_err = q_ref, q_err = q_custom⁻¹ ⊗ q_ref)
+q_err = q_est⁻¹ ⊗ q_ref
+(q_est ⊗ q_err = q_ref, q_err = q_est⁻¹ ⊗ q_ref)
 
 q⁻¹ = q* / ||q||²,
 q⁻¹ = q* when q is unit quaternion

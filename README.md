@@ -195,8 +195,10 @@ and orientation was propagated using pure gyro integration.<br>
 
 ##### [Result]
 
-- Mean error ≈ 2.98634rad (171.10°)
-- p90 error ≈ 3.12675rad (179.15°)
+| unit  |  Mean error  |  p90 error   |
+|:-----:|-------------:|-------------:|
+|  rad  | 2.98634      | 3.12675      |
+|  deg  | 171.10485    | 179.14982    |
 
 <br>
 
@@ -239,8 +241,10 @@ For this dataset, stabilization detected at `t = 23 s`.<br>
 
 ##### [Result]
 
-- Mean error ≈ 0.53778rad (30.81°)
-- p90 error ≈ 0.81277rad (46.57°)
+| unit  |  Mean error  |  p90 error   |
+|:-----:|-------------:|-------------:|
+|  rad  | 0.53778      | 0.81277      |
+|  deg  | 30.81266     | 46.56837     |
 
 <br>
 
