@@ -217,7 +217,6 @@ def find_stable_start_idx(dt: ScalarBatch, w: Vec3Batch, q_ref: QuatBatch,
 
                 if p90 < threshold:
                         cons += 1
-                        print(f"i: {i} | p90(err): {p90:.10f} | cons: {cons}")
                         if cons >= consecutive:
                                 best_idx = i - (consecutive - 1) * sample_hz
                                 best_idx = max(0, best_idx)
@@ -229,12 +228,12 @@ def find_stable_start_idx(dt: ScalarBatch, w: Vec3Batch, q_ref: QuatBatch,
         max_cut_idx: int = min(sample_hz * max_cut_second, n - sample_window)
         min_cut_idx: int = min(sample_hz * min_cut_second, n - sample_window)
         if best_idx is None:
-                print(f"[WARN] stabilization not found within {max_cut_second}s. applying fallback cut={max_cut_second}s")
+                print(f"[WARN] Stabilization not found within {max_cut_second}s, applying fallback cut={max_cut_second}s")
                 return max_cut_idx
         elif (best_idx / sample_hz) < min_cut_second:
-                print(f"[INFO] stabilization detected too early (< min_cut). applying min_cut={min_cut_second}s policy")
+                print(f"[INFO] Stabilization detected too early (< min_cut), applying min_cut={min_cut_second}s policy")
                 return min_cut_idx
-        print(f"[OK] stabilization detected. cut idx {best_idx} (≈ {best_idx / sample_hz:.1f}s)")
+        print(f"[OK] Stabilization detected, cut idx {best_idx} (≈ {best_idx / sample_hz:.1f}s)")
         return best_idx
 ```
 <br>
@@ -280,14 +279,11 @@ Each plot compares:<br>
 <br>
 
 ```
-[START] 2026-02-25 05:54:28.299
+[START] 2026-02-26 20:27:02.739
 
-i: 100 | p90(err): 0.2880048381 | cons: 1
-i: 200 | p90(err): 0.4031028680 | cons: 2
-i: 300 | p90(err): 0.4418519343 | cons: 3
-[INFO] stabilization detected too early (< min_cut). applying min_cut=10s policy
+[INFO] Stabilization detected too early (< min_cut), applying min_cut=10s policy
 
-[END] 2026-02-25 05:54:28.554
+[END] 2026-02-26 20:27:02.993
 ```
 
 <br>
@@ -302,7 +298,7 @@ i: 300 | p90(err): 0.4418519343 | cons: 3
 <br>
 
 ```
-[START] 2026-02-25 05:54:26.689
+[START] 2026-02-26 20:27:00.922
 
 Gyro only: no sample cut angle error in rad — min/max/mean/p90
 0.016900799939842653 1.0850920070565426 0.5475108313340219 0.6285622393965337
@@ -310,11 +306,11 @@ Gyro only: no sample cut angle error in rad — min/max/mean/p90
 Gyro only: no sample cut angle error in deg — min/max/mean/p90
 0.9683445069479396 62.171192387719636 31.370059873138523 36.01396347871306
 
-[END] 2026-02-25 05:54:28.289
+[END] 2026-02-26 20:27:02.728
 
 
 
-[START] 2026-02-25 05:54:28.568
+[START] 2026-02-26 20:27:03.010
 
 Gyro only: sample cut 10.0s angle error in rad — min/max/mean/p90
 0.002692606276233363 1.41733946975559 0.39107310298265935 0.5663011403381867
@@ -322,7 +318,7 @@ Gyro only: sample cut 10.0s angle error in rad — min/max/mean/p90
 Gyro only: sample cut 10.0s angle error in deg — min/max/mean/p90
 0.15427497551860841 81.2075697543053 22.406838281991387 32.446665274823836
 
-[END] 2026-02-25 05:54:30.410
+[END] 2026-02-26 20:27:04.854
 ```
 
 <br>
@@ -348,14 +344,11 @@ Gyro only: sample cut 10.0s angle error in deg — min/max/mean/p90
 <br>
 
 ```
-[START] 2026-02-25 05:53:52.779
+[START] 2026-02-26 20:26:15.470
 
-i: 300 | p90(err): 0.4943863805 | cons: 1
-i: 400 | p90(err): 0.4388466633 | cons: 2
-i: 500 | p90(err): 0.4579818970 | cons: 3
-[INFO] stabilization detected too early (< min_cut). applying min_cut=10s policy
+[INFO] Stabilization detected too early (< min_cut), applying min_cut=10s policy
 
-[END] 2026-02-25 05:53:53.209
+[END] 2026-02-26 20:26:15.976
 ```
 
 <br>
@@ -370,7 +363,7 @@ i: 500 | p90(err): 0.4579818970 | cons: 3
 <br>
 
 ```
-[START] 2026-02-25 05:53:49.820
+[START] 2026-02-26 20:26:12.539
 
 Gyro only: no sample cut angle error in rad — min/max/mean/p90
 0.009464702257402596 2.6688536472865168 1.909912008440155 2.055300097693392
@@ -378,11 +371,11 @@ Gyro only: no sample cut angle error in rad — min/max/mean/p90
 Gyro only: no sample cut angle error in deg — min/max/mean/p90
 0.5422874936971117 152.91405012761385 109.42989732497534 117.76002123065714
 
-[END] 2026-02-25 05:53:52.770
+[END] 2026-02-26 20:26:15.460
 
 
 
-[START] 2026-02-25 05:53:53.226
+[START] 2026-02-26 20:26:15.991
 
 Gyro only: sample cut 10.0s angle error in rad — min/max/mean/p90
 0.004019503743449339 0.7197238920239989 0.3838298145823989 0.5440975838643741
@@ -390,7 +383,7 @@ Gyro only: sample cut 10.0s angle error in rad — min/max/mean/p90
 Gyro only: sample cut 10.0s angle error in deg — min/max/mean/p90
 0.23030060023668236 41.23714142770451 21.991828426860398 31.174495198693997
 
-[END] 2026-02-25 05:53:56.307
+[END] 2026-02-26 20:26:18.959
 ```
 
 <br>
@@ -415,14 +408,11 @@ Gyro only: sample cut 10.0s angle error in deg — min/max/mean/p90
 <br>
 
 ```
-[START] 2026-02-25 05:52:27.845
+[START] 2026-02-26 20:24:54.374
 
-i: 2300 | p90(err): 0.2868222795 | cons: 1
-i: 2400 | p90(err): 0.2190085354 | cons: 2
-i: 2500 | p90(err): 0.2271790833 | cons: 3
-[OK] stabilization detected. cut idx 2300 (≈ 23.0s)
+[OK] Stabilization detected, cut idx 2300 (≈ 23.0s)
 
-[END] 2026-02-25 05:52:29.218
+[END] 2026-02-26 20:24:55.835
 ```
 
 <br>
@@ -437,7 +427,7 @@ i: 2500 | p90(err): 0.2271790833 | cons: 3
 <br>
 
 ```
-[START] 2026-02-25 05:52:23.640
+[START] 2026-02-26 20:24:49.801
 
 Gyro only: no sample cut angle error in rad — min/max/mean/p90
 0.006497650316757928 3.1415925744092994 2.9863430261847146 3.126754275860046
@@ -445,11 +435,11 @@ Gyro only: no sample cut angle error in rad — min/max/mean/p90
 Gyro only: no sample cut angle error in deg — min/max/mean/p90
 0.37228793990207176 179.9999954632919 171.10485157871042 179.14982358126457
 
-[END] 2026-02-25 05:52:27.835
+[END] 2026-02-26 20:24:54.362
 
 
 
-[START] 2026-02-25 05:52:29.233
+[START] 2026-02-26 20:24:55.846
 
 Gyro only: sample cut 23.0s angle error in rad — min/max/mean/p90
 0.00827387251043809 1.2902038650243064 0.5377823159898106 0.8127713667204784
@@ -457,7 +447,7 @@ Gyro only: sample cut 23.0s angle error in rad — min/max/mean/p90
 Gyro only: sample cut 23.0s angle error in deg — min/max/mean/p90
 0.47405797507741365 73.92323617735929 30.812657002986956 46.56836902216311
 
-[END] 2026-02-25 05:52:32.830
+[END] 2026-02-26 20:25:00.565
 ```
 
 <br>
@@ -483,14 +473,11 @@ Gyro only: sample cut 23.0s angle error in deg — min/max/mean/p90
 <br>
 
 ```
-[START] 2026-02-25 05:51:04.732
+[START] 2026-02-26 20:23:56.918
 
-i: 0 | p90(err): 0.3105113178 | cons: 1
-i: 100 | p90(err): 0.3198920439 | cons: 2
-i: 200 | p90(err): 0.3273575401 | cons: 3
-[INFO] stabilization detected too early (< min_cut). applying min_cut=10s policy
+[INFO] Stabilization detected too early (< min_cut), applying min_cut=10s policy
 
-[END] 2026-02-25 05:51:04.917
+[END] 2026-02-26 20:23:57.101
 ```
 
 <br>
@@ -505,7 +492,7 @@ i: 200 | p90(err): 0.3273575401 | cons: 3
 <br>
 
 ```
-[START] 2026-02-25 05:50:35.307
+[START] 2026-02-26 20:23:23.880
 
 Gyro only: no sample cut angle error in rad — min/max/mean/p90
 0.0017503209553177612 3.1380681380116897 1.0451934334037227 2.3059672108235416
@@ -513,11 +500,11 @@ Gyro only: no sample cut angle error in rad — min/max/mean/p90
 Gyro only: no sample cut angle error in deg — min/max/mean/p90
 0.10028600353301406 179.79806013254657 59.88517250882119 132.12218887574306
 
-[END] 2026-02-25 05:51:04.718
+[END] 2026-02-26 20:23:56.902
 
 
 
-[START] 2026-02-25 05:51:04.938
+[START] 2026-02-26 20:23:57.115
 
 Gyro only: sample cut 10.0s angle error in rad — min/max/mean/p90
 0.003631716393424654 3.138840519423176 0.8880786152784693 2.036924604732547
@@ -525,7 +512,7 @@ Gyro only: sample cut 10.0s angle error in rad — min/max/mean/p90
 Gyro only: sample cut 10.0s angle error in deg — min/max/mean/p90
 0.2080820217317055 179.8423143275991 50.883156531278644 116.70718303752838
 
-[END] 2026-02-25 05:51:34.521
+[END] 2026-02-26 20:24:28.423
 ```
 
 <br>

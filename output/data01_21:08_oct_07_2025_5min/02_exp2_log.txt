@@ -1,0 +1,108 @@
+
+
+[START] 2026-02-26 20:29:12.057
+
+[INFO] Stabilization detected too early (< min_cut), applying min_cut=10s policy
+
+[END] 2026-02-26 20:29:12.758
+
+
+
+
+[START] 2026-02-26 20:29:12.810
+
+Detected accel unit in [m/s²]
+Selected g_world_unit: [ 0  0 -1]
+
+Best quasi static(start, end, length):  (2523, 3540, 1017)
+
+Suggested gyro_sigma:  0.44791971689543864
+Suggested acc_sigma:  2.908568806018301
+
+[END] 2026-02-26 20:29:13.679
+
+
+
+
+[START] 2026-02-26 20:29:13.700
+
+[tau_table]
+rank 1 : [tau]  3.0 , [K]  0.003332926432292993
+rank 2 : [tau]  0.7 , [K]  0.014283970424112828
+rank 3 : [tau]  1.0 , [K]  0.009998779296878979
+
+suggest tau:  3.0 , K:  0.003332926432292993
+
+[choosen value]
+tau= 3.0 K= 0.003332926432292993
+sa=inf, sg=inf
+
+Gyro+Acc angle error in rad — min/max/mean/p90
+0.0028253656890090757 1.4041137225284805 0.3414149857047015 0.5148755033035524
+
+Gyro+Acc angle error in deg — min/max/mean/p90
+0.16188152956129193 80.44979025728507 19.56163774339873 29.500193313967625
+
+[END] 2026-02-26 20:30:02.335
+
+
+
+
+[START] 2026-02-26 20:30:02.366
+
+[tau_table]
+rank 1 : [tau]  3.0 , [K]  0.003332926432292993
+rank 2 : [tau]  0.7 , [K]  0.014283970424112828
+rank 3 : [tau]  2.0 , [K]  0.0049993896484394895
+
+suggest tau:  3.0 , K:  0.003332926432292993
+
+[sa=0.01] acc_gate_sigma=0.0290857 mean_err(rad)=0.3636687
+[sa=1] acc_gate_sigma=2.9085688 mean_err(rad)=0.3401973
+[sa=10] acc_gate_sigma=29.0856881 mean_err(rad)=0.3413488
+[sa=inf] acc_gate_sigma=inf mean_err(rad)=0.3414150
+
+
+[choosen value]
+tau= 3.0 K= 0.003332926432292993
+sa=1,  acc_gate_sigma=2.9085688,  sg=inf
+Gyro+Acc+Gating(Acc) angle error in rad — min/max/mean/p90
+0.0028007213045730187 1.4022353056038215 0.3401972619552348 0.5136400057527237
+
+Gyro+Acc+Gating(Acc) angle error in deg — min/max/mean/p90
+0.16046951034440796 80.34216489533617 19.491867311941444 29.429404518706395
+
+[END] 2026-02-26 20:31:12.561
+
+
+
+
+[START] 2026-02-26 20:31:12.590
+
+[tau_table]
+rank 1 : [tau]  3.0 , [K]  0.003332926432292993
+rank 2 : [tau]  2.0 , [K]  0.0049993896484394895
+rank 3 : [tau]  0.7 , [K]  0.014283970424112828
+rank 4 : [tau]  0.5 , [K]  0.019997558593757958
+rank 5 : [tau]  1.5 , [K]  0.006665852864585986
+
+suggest tau:  3.0 , K:  0.003332926432292993
+
+[sa=1] acc_gate_sigma=2.9085688,  [sg=0.1] gyro_gate_sigma=0.0447920,  mean_err(rad)=0.3523484
+[sa=1] acc_gate_sigma=2.9085688,  [sg=1] gyro_gate_sigma=0.4479197,  mean_err(rad)=0.3390884
+[sa=1] acc_gate_sigma=2.9085688,  [sg=10] gyro_gate_sigma=4.4791972,  mean_err(rad)=0.3401545
+[sa=1] acc_gate_sigma=2.9085688,  [sg=inf] gyro_gate_sigma=inf,  mean_err(rad)=0.3401973
+
+[choosen value]
+tau= 3.0 K= 0.003332926432292993
+sa=1,  acc_gate_sigma=2.9085688,  sg=1,  gyro_gate_sigma=0.4479197
+
+Gyro+Acc+Gating(Acc) angle error in rad — min/max/mean/p90
+0.002782597463724189 1.4018972772745735 0.33908843712552167 0.5123973023219879
+
+Gyro+Acc+Gating(Acc) angle error in deg — min/max/mean/p90
+0.15943109075520323 80.32279729871439 19.42833632897957 29.358202856938803
+
+[END] 2026-02-26 20:32:22.565
+
+

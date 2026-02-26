@@ -1,12 +1,44 @@
 import numpy as np
 from typing import Any
 
-from my_types import Vec3, Quat, ScalarBatch, Vec3Batch, BoolBatch, Int8Batch, Int32Batch, Int64Batch
+from my_types import Vec3, Quat, ScalarBatch, Vec3Batch, QuatBatch, BoolBatch, Int8Batch, Int32Batch, Int64Batch
 from my_types import as_vec3, as_scalar_batch, as_bool_batch, as_int8_batch
-from pipelines import integrate_gyro_acc_no_gate, integrate_gyro_acc_with_gate_acc, integrate_gyro_acc_with_gate_gyro_acc
+from pipelines import integrate_gyro_acc
+from evaluation import calc_angle_err
 
 EPS: float = 1e-6
 DELTA: float = 1e-12
+
+def auto_setup_imu_frame(q_ref: QuatBatch, w: Vec3Batch, dt: ScalarBatch,
+                         g0: float, a_src: Vec3Batch) -> tuple[Vec3Batch, Vec3]:
+        """
+        Returns:
+                a_src_interp: (N,3): converted unit [m/s²]
+                g_world_unit: Vec3
+        """
+        if np.median(np.linalg.norm(a_src, axis=1)) < 2:
+                print("Detected accel unit in [g] → converting to [m/s²]")
+                a_src = a_src * g0
+        else:
+                print("Detected accel unit in [m/s²]")
+
+        g_world_dir_candidate: tuple[Vec3, Vec3] = [
+                as_vec3(np.array([0, 0, -1])),
+                as_vec3(np.array([0, 0, 1]))
+        ]
+        score_tmp: float = np.inf
+        g_world_unit: Vec3 = None
+        for g_dir in g_world_dir_candidate:
+                q_tmp, _, _, _, _ = integrate_gyro_acc(
+                        q_ref[0].copy(), w[:2000], dt[:2000],
+                        (np.median(dt[:2000]) / 0.5), g0, g_dir,
+                        np.inf, np.inf, a_src[:2000])
+                err_tmp = np.mean(calc_angle_err(q_tmp[:2000], q_ref[:2000]))
+                if score_tmp > err_tmp:
+                        score_tmp = err_tmp
+                        g_world_unit = g_dir
+        print("Selected g_world_unit:", g_world_unit)
+        return a_src, g_world_unit
 
 def stats_basic(x: float) -> tuple[float, ...]:
         """
@@ -58,192 +90,102 @@ def smooth_bool(mask: BoolBatch, win: int = 5) -> BoolBatch:
         res: BoolBatch = (s >= (win//2 + 1))
         return as_bool_batch(res)
 
-def detect_still_segments(w: Vec3Batch, a: Vec3Batch, dt: ScalarBatch, g0: float,
+def quasi_static_detector(w: Vec3Batch, a: Vec3Batch, dt: ScalarBatch, g0: float,
                           w_thr: float, a_thr: float,
                           min_duration_s: float, smooth_win: int,
-                          ) -> tuple[BoolBatch, dict[str, Any], tuple[int, int, int]]:
+                          ) -> tuple[BoolBatch, tuple[int, int, int]]:
         """
         Returns:
-                still_mask: (N,) BoolBatch
-                still_info: dict[str, Any], threshold and stats
-                best_run: tuple[int, int, int], longest still segment
+                quasi_static_mask: (N,) BoolBatch
+                quasi_static_info: dict[str, Any], threshold and stats
+                best_run: tuple[int, int, int], longest quasi_static segment
         """
         w_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(w, axis=1))
         a_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(a, axis=1))
-        acc_resid: float = np.abs(a_norm - g0)
+        acc_resid: ScalarBatch = np.abs(a_norm - g0)
 
-        # If thresholds not provided, choose them from distribution
-        # - w_thr: "very low rotation" => use a low percentile
-        # - a_thr: "close to gravity magnitude"
         if w_thr is None:
-                w_thr = float(np.percentile(w_norm, 30))
+                w_thr = float(np.percentile(w_norm, 5))
         if a_thr is None:
-                a_thr = float(np.percentile(acc_resid, 30))
+                a_thr = float(np.percentile(acc_resid, 5))
 
         raw_mask: BoolBatch = (w_norm < w_thr) & (acc_resid < a_thr)
-        still_mask: BoolBatch = smooth_bool(raw_mask, win=smooth_win)
+        quasi_static_mask: BoolBatch = smooth_bool(raw_mask, win=smooth_win)
 
         # enforce min duration
         # convert duration to samples roughly using median dt
-        dt_medean: float = np.median(dt)
-        min_len: int = int(np.ceil(min_duration_s / max(dt_medean, EPS)))
+        dt_midean: float = np.median(dt)
+        min_len: int = int(np.ceil(min_duration_s / max(dt_midean, EPS)))
 
-        best_run: tuple[int, int, int] = largest_true_run(still_mask)
-        if best_run is not None and best_run[2] < min_len:
-                best_run = None
+        best_quasi_static: tuple[int, int, int] = largest_true_run(quasi_static_mask)
+        if best_quasi_static is not None and best_quasi_static[2] < min_len:
+                best_quasi_static = None
+                print("Best quasi static not found")
+        print("Best quasi static(start, end, length): ", best_quasi_static)
+        return quasi_static_mask, best_quasi_static
 
-        still_info: dict[str, Any] = {
-                "w_thr": w_thr,
-                "a_thr": a_thr,
-                "min_duration_s": min_duration_s,
-                "smooth_win": smooth_win,
-                "dt_median": dt_medean,
-                "gyro_norm_stats": stats_basic(w_norm),
-                "acc_resid_stats": stats_basic(acc_resid),
-                "still_fraction": float(np.mean(still_mask))
-        }
-        return still_mask, still_info, best_run
-
-#def suggest_acc_sigma(a: Vec3Batch, g0: float,
-#                  p_acc: int = 90, sigma_floor: float = 1e-3
-#                  ) -> tuple[float, float, dict[str, Any]]:
-#        """
-#        Returns:
-#                acc_sigma: float
-#                sigma_info: dict[str, Any]
-#        """
-#        a_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(a, axis=1))
-#        acc_resid: float = np.abs(a_norm - g0)
-
-#        acc_sigma: float = max(sigma_floor, float(np.percentile(acc_resid, p_acc)))
-
-#        sigma_info: dict[str, Any] = {
-#                "p_acc": int(p_acc),
-#                "acc_resid_p50_p90_p99": tuple(np.percentile(acc_resid, [50, 90, 99]))
-#        }
-#        return acc_sigma, sigma_info
-
-def suggest_acc_sigma(a: Vec3Batch, g0: float,
-                  p_acc: int = 90, sigma_floor: float = 1e-3,
-                  segment: tuple[int, int] = None,
-                  ) -> tuple[float, float, dict[str, Any]]:
-        """
-        Returns:
-                acc_sigma: float
-                sigma_info: dict[str, Any]
-        """
-        if segment is not None:
-                s, e = segment
-                a_use = a[s:e]
-        else:
-                a_use = a
-        a_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(a_use, axis=1))
-        acc_resid: float = np.abs(a_norm - g0)
-
-        acc_sigma: float = max(sigma_floor, float(np.percentile(acc_resid, p_acc)))
-
-        sigma_info: dict[str, Any] = {
-                "p_acc": int(p_acc),
-                "acc_resid_p50_p90_p99": tuple(np.percentile(acc_resid, [50, 90, 99]))
-        }
-        return acc_sigma, sigma_info
-
-#def suggest_gyro_acc_sigma(w: Vec3Batch, a: Vec3Batch, g0: float,
-#                  p_gyro: int, p_acc: int, sigma_floor: float,
-#                  ) -> tuple[float, float, dict[str, Any]]:
-#        """
-#        Returns:
-#                gyro_sigma: float
-#                acc_sigma: float
-#                sigma_info: dict[str, Any]
-#        """
-#        w_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(w, axis=1))
-#        a_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(a, axis=1))
-#        acc_resid: float = np.abs(a_norm - g0)
-
-#        gyro_sigma: float = max(sigma_floor, float(np.percentile(w_norm, p_gyro)))
-#        acc_sigma: float = max(sigma_floor, float(np.percentile(acc_resid, p_acc)))
-
-#        sigma_info: dict[str, Any] = {
-#                "p_gyro": int(p_gyro),
-#                "p_acc": int(p_acc),
-#                "gyro_norm_p50_p90_p99": tuple(np.percentile(w_norm,[50, 90, 99])),
-#                "acc_resid_p50_p90_p99": tuple(np.percentile(acc_resid, [50, 90, 99]))
-#        }
-#        return gyro_sigma, acc_sigma, sigma_info
-
-def suggest_gyro_acc_sigma(w: Vec3Batch, a: Vec3Batch, g0: float,
-                  p_gyro: int, p_acc: int, sigma_floor: float,
-                  segment: tuple[int, int] = None,
-                  ) -> tuple[float, float, dict[str, Any]]:
+def suggest_gate_sigma(w: Vec3Batch, a: Vec3Batch, g0: float,
+                       p_gyro: int, p_acc: int, sigma_floor: float,
+                       best_quasi_static: tuple[float, float, float] = None
+                       ) -> tuple[float, float]:
         """
         Returns:
                 gyro_sigma: float
                 acc_sigma: float
-                sigma_info: dict[str, Any]
         """
-        if segment is not None:
-                s, e = segment
+        if best_quasi_static is not None:
+                s, e, _ = best_quasi_static
+                w_use = w[s:e]
                 a_use = a[s:e]
         else:
+                w_use = w
                 a_use = a
 
-        w_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(w, axis=1))
+        w_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(w_use, axis=1))
         a_norm: ScalarBatch = as_scalar_batch(np.linalg.norm(a_use, axis=1))
-        acc_resid: float = np.abs(a_norm - g0)
+        acc_resid: ScalarBatch = np.abs(a_norm - g0)
 
-        gyro_sigma: float = max(sigma_floor, float(np.percentile(w_norm, p_gyro)))
-        acc_sigma: float = max(sigma_floor, float(np.percentile(acc_resid, p_acc)))
+        if p_gyro is None:
+                gyro_sigma = np.inf
+        else:
+                gyro_sigma: float = max(sigma_floor, float(np.percentile(w_norm, p_gyro)))
+        
+        if p_acc is None:
+                acc_sigma = np.inf
+        else:
+                acc_sigma: float = max(sigma_floor, float(np.percentile(acc_resid, p_acc)))
+        print("Suggested gyro_sigma: ", gyro_sigma)
+        print("Suggested acc_sigma: ", acc_sigma)
+        return gyro_sigma, acc_sigma
 
-        sigma_info: dict[str, Any] = {
-                "p_gyro": int(p_gyro),
-                "p_acc": int(p_acc),
-                "gyro_norm_p50_p90_p99": tuple(np.percentile(w_norm,[50, 90, 99])),
-                "acc_resid_p50_p90_p99": tuple(np.percentile(acc_resid, [50, 90, 99]))
-        }
-        return gyro_sigma, acc_sigma, sigma_info
-
-def choose_tau_from_still_segment(q0: Quat, w: Vec3Batch, dt: ScalarBatch, a: Vec3Batch,
-                                  g0: float, g_world_unit: Vec3,
-                                  acc_gate_sigma: float, gyro_gate_sigma: float,
-                                  tau_candidates: tuple[float, ...],
-                                  still_run: tuple[int, int, int] | None = None
-                                  ) -> tuple[float, list[dict[str, Any]]]:
+def choose_tau_from_quasi_static(q0: Quat, w: Vec3Batch, dt: ScalarBatch, a: Vec3Batch,
+                                 g0: float, g_world_unit: Vec3,
+                                 acc_gate_sigma: float, gyro_gate_sigma: float,
+                                 best_quasi_static: tuple[int, int, int] | None = None,
+                                 tau_candidates: tuple[float, ...] = (0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1)
+                                 ) -> tuple[list[dict[str, Any]], float, float]:
         """
         Returns:
-                best_tau: float
                 tau_table: dict[str, Any]
+                best_tau: float
+                K: float
         """
-        if still_run is None:
-                return 0.25, [{"tau": 0.25, "score": None, "note": "no still segment found"}]
+        dt_midean: float = float(np.median(dt))
 
-        s, e, _ = still_run
-        dt_medean: float = float(np.median(dt).reshape(-1))
+        if best_quasi_static is None:
+                return 0.25,[{"tau": 0.25, "K": float(dt_midean / 0.25)}]
 
+        s, e, _ = best_quasi_static
         tau_table: list[dict[str, Any]] = []
         for tau in tau_candidates:
-                K = float(dt_medean / tau)
+                K = float(dt_midean / tau)
 
-                if not np.isinf(gyro_gate_sigma) and not np.isinf(acc_gate_sigma):
-                        q, g_body_est, a_lin_est, weight_acc, weight_gyro = integrate_gyro_acc_with_gate_gyro_acc(
-                                                                q0.copy(), w, dt,
-                                                                K, g0, g_world_unit,
-                                                                acc_gate_sigma, gyro_gate_sigma, a)
-                elif np.isinf(gyro_gate_sigma) and not np.isinf(acc_gate_sigma):
-                        q, g_body_est, a_lin_est, weight_acc, weight_gyro = integrate_gyro_acc_with_gate_acc(
-                                                                q0.copy(), w, dt,
-                                                                K, g0, g_world_unit,
-                                                                acc_gate_sigma, a)
-                        weight_gyro: ScalarBatch = as_scalar_batch(np.zeros((len(dt),)))
-                else:
-                        q, g_body_est, a_lin_est = integrate_gyro_acc_no_gate(
-                                                                q0.copy(), w, dt,
-                                                                K, g0, g_world_unit,
-                                                                a)
-                        weight_acc: ScalarBatch = as_scalar_batch(np.zeros((len(dt),)))
-                        weight_gyro: ScalarBatch = as_scalar_batch(np.zeros((len(dt),)))
+                _, g_body_est, _, _, _ = integrate_gyro_acc(
+                                                        q0.copy(), w, dt,
+                                                        K, g0, g_world_unit,
+                                                        acc_gate_sigma, gyro_gate_sigma, a)
 
-                # In still segment, gravity in body frame should be stable.
+                # In quasi_static segment, gravity in body frame should be stable.
                 # Use direction variance as a stability proxy.
                 gb = g_body_est[s:e]
                 gb_unit = gb / (np.linalg.norm(gb, axis=1, keepdims=True) + DELTA)
@@ -256,155 +198,8 @@ def choose_tau_from_still_segment(q0: Quat, w: Vec3Batch, dt: ScalarBatch, a: Ve
                 score: float = float(np.mean(ang)) # lower is better
 
                 tau_table.append({
-                        "tau": float(tau),
-                        "K": K,
-                        "still_score_mean_angle(rad)": score,
-                        "mean_weight_acc": np.mean(weight_acc[s:e]),
-                        "mean_weight_gyro": np.mean(weight_gyro[s:e]),
-                })
-        tau_table.sort(key=lambda d: d["still_score_mean_angle(rad)"])
+                        "tau": float(tau), "K": K,
+                        "quasi_static_score_mean_angle(rad)": score})
+        tau_table.sort(key=lambda d: d["quasi_static_score_mean_angle(rad)"])
         best_tau: float = tau_table[0]["tau"]
-        return best_tau, tau_table
-
-def auto_param_exp2_1(q0: Quat, w: Vec3Batch, dt: ScalarBatch, a: Vec3Batch,
-                g0: float, g_world_unit: Vec3,
-                min_duration_s: float, smooth_win: int,
-                w_thr: float, a_thr: float,
-                tau_candidates: tuple[float, ...] = (0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1)
-                ) -> tuple[dict[str, Any], dict[str, Any], tuple[int, int, int]]:
-        """
-        Returns:
-                param: dict[str, Any]
-                diag: dict[str, Any]
-                still_mask: tuple[int, int, int]
-        """
-        still_mask, still_info, best_run = detect_still_segments(w, a, dt, g0,
-                                                                 w_thr, a_thr,
-                                                                 min_duration_s, smooth_win)
-
-        gyro_sigma: float = np.inf
-        acc_sigma: float = np.inf
-
-        best_tau, tau_table = choose_tau_from_still_segment(q0, w, dt, a,
-                                                            g0, g_world_unit,
-                                                            gyro_sigma, acc_sigma,
-                                                            tau_candidates, best_run)
-
-        dt_medean: float = np.median(dt)
-        K: float = dt_medean / best_tau
-
-        param: dict[str, Any] = {
-                "K": K,
-                "acc_gate_sigma": acc_sigma,
-                "gyro_gate_sigma": gyro_sigma,
-                "tau": best_tau,
-                "best_run": best_run
-        }
-        
-        diag: dict[str, Any] = {
-                "still_info": still_info,
-                "sigma_info": None,
-                "tau_table_top3": tau_table[:3]
-        }
-        return param, diag, still_mask
-
-def auto_param_exp2_2(q0: Quat, w: Vec3Batch, dt: ScalarBatch, a: Vec3Batch,
-                g0: float, g_world_unit: Vec3,
-                p_acc: int, sigma_floor: float,
-                min_duration_s: float, smooth_win: int,
-                w_thr: float, a_thr: float,
-                sigma_scale_candidates: tuple[float, ...] = None,
-                tau_candidates: tuple[float, ...] = (0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1)
-                ) -> tuple[dict[str, Any], dict[str, Any], tuple[int, int, int]]:
-        """
-        Returns:
-                param: dict[str, Any]
-                diag: dict[str, Any]
-                still_mask: tuple[int, int, int]
-        """
-        still_mask, still_info, best_run = detect_still_segments(w, a, dt, g0,
-                                                                 w_thr, a_thr,
-                                                                 min_duration_s, smooth_win)
-
-        gyro_sigma: float = np.inf
-
-        if best_run is not None:
-                s, e, _ = best_run
-                acc_sigma, sigma_info = suggest_acc_sigma(a, g0,
-                                                          p_acc, sigma_floor,
-                                                          segment=(s,e))
-        else:
-                acc_sigma, sigma_info = suggest_acc_sigma(a, g0,
-                                                          p_acc, sigma_floor)
-
-        best_tau, tau_table = choose_tau_from_still_segment(q0, w, dt, a,
-                                                            g0, g_world_unit,
-                                                            gyro_sigma, acc_sigma,
-                                                            tau_candidates, best_run)
-
-        dt_medean: float = np.median(dt)
-        K: float = dt_medean / best_tau
-
-        param: dict[str, Any] = {
-                "K": K,
-                "acc_gate_sigma": acc_sigma,
-                "gyro_gate_sigma": gyro_sigma,
-                "tau": best_tau,
-                "best_run": best_run
-        }
-        
-        diag: dict[str, Any] = {
-                "still_info": still_info,
-                "sigma_info": sigma_info,
-                "tau_table_top3": tau_table[:3]
-        }
-        return param, diag, still_mask
-
-def auto_param_exp2_3(q0: Quat, w: Vec3Batch, dt: ScalarBatch, a: Vec3Batch,
-                g0: float, g_world_unit: Vec3,
-                p_gyro: int, p_acc: int, sigma_floor: float,
-                min_duration_s: float, smooth_win: int,
-                w_thr: float, a_thr: float,
-                tau_candidates: tuple[float, ...] = (0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1)
-                ) -> tuple[dict[str, Any], dict[str, Any], tuple[int, int, int]]:
-        """
-        Returns:
-                param: dict[str, Any]
-                diag: dict[str, Any]
-                still_mask: tuple[int, int, int]
-        """
-        still_mask, still_info, best_run = detect_still_segments(w, a, dt, g0,
-                                                                 w_thr, a_thr,
-                                                                 min_duration_s, smooth_win)
-
-        if best_run is not None:
-                s, e, _ = best_run
-                gyro_sigma, acc_sigma, sigma_info = suggest_gyro_acc_sigma(w, a, g0,
-                                                                           p_gyro, p_acc, sigma_floor,
-                                                                           segment=(s,e))
-        else:
-                gyro_sigma, acc_sigma, sigma_info = suggest_gyro_acc_sigma(w, a, g0,
-                                                                           p_gyro, p_acc, sigma_floor)
-
-        best_tau, tau_table = choose_tau_from_still_segment(q0, w, dt, a,
-                                                            g0, g_world_unit,
-                                                            gyro_sigma, acc_sigma,
-                                                            tau_candidates, best_run)
-
-        dt_medean: float = np.median(dt)
-        K: float = dt_medean / best_tau
-
-        param: dict[str, Any] = {
-                "K": K,
-                "acc_gate_sigma": acc_sigma,
-                "gyro_gate_sigma": gyro_sigma,
-                "tau": best_tau,
-                "best_run": best_run
-        }
-        
-        diag: dict[str, Any] = {
-                "still_info": still_info,
-                "sigma_info": sigma_info,
-                "tau_table_top3": tau_table[:3]
-        }
-        return param, diag, still_mask
+        return tau_table, best_tau, K

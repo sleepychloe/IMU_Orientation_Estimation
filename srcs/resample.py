@@ -43,7 +43,6 @@ def find_stable_start_idx(dt: ScalarBatch, w: Vec3Batch, q_ref: QuatBatch,
 
                 if p90 < threshold:
                         cons += 1
-                        print(f"i: {i} | p90(err): {p90:.10f} | cons: {cons}")
                         if cons >= consecutive:
                                 best_idx = i - (consecutive - 1) * sample_hz
                                 best_idx = max(0, best_idx)
@@ -55,12 +54,12 @@ def find_stable_start_idx(dt: ScalarBatch, w: Vec3Batch, q_ref: QuatBatch,
         max_cut_idx: int = min(sample_hz * max_cut_second, n - sample_window)
         min_cut_idx: int = min(sample_hz * min_cut_second, n - sample_window)
         if best_idx is None:
-                print(f"[WARN] stabilization not found within {max_cut_second}s. applying fallback cut={max_cut_second}s")
+                print(f"[WARN] Stabilization not found within {max_cut_second}s, applying fallback cut={max_cut_second}s")
                 return max_cut_idx
         elif (best_idx / sample_hz) < min_cut_second:
-                print(f"[INFO] stabilization detected too early (< min_cut). applying min_cut={min_cut_second}s policy")
+                print(f"[INFO] Stabilization detected too early (< min_cut), applying min_cut={min_cut_second}s policy")
                 return min_cut_idx
-        print(f"[OK] stabilization detected. cut idx {best_idx} (≈ {best_idx / sample_hz:.1f}s)")
+        print(f"[OK] Stabilization detected, cut idx {best_idx} (≈ {best_idx / sample_hz:.1f}s)")
         return best_idx
 
 def cut_sample(win: int, sample: Sequence[Any] = None) -> list[Any]:

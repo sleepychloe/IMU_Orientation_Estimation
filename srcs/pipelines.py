@@ -42,38 +42,6 @@ def select_acc_measurement(a_src: Vec3, g_pred: Vec3) -> Vec3:
                 return g_pred
         return a_src
 
-def integrate_gyro_acc_no_gate(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
-                       K: float, g0: float, g_world_unit: Vec3,
-                      a_src: Vec3Batch
-                       ) -> tuple[QuatBatch, Vec3Batch, Vec3Batch]:
-        """
-        Returns:
-                res (q_gyro_acc): (N,4) QuatBatch
-                g_body_est: (N,3) Vec3Batch
-                a_lin_est: (N,3) Vec3Batch
-        """
-        q: Quat = q0.copy()
-        res: QuatBatch = as_quat_batch(np.zeros((len(dt), 4)))
-        g_body_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
-        a_lin_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
-
-        for i in range(len(dt)):
-                q_pred: Quat = gyro_predict(q, w_avg[i], dt[i])
-
-                g_pred: Vec3 = predict_gravity_body_frame(q_pred, g_world_unit)
-                a_meas: Vec3 = select_acc_measurement(a_src[i].copy(), g_pred.copy())
-                a_unit: Vec3 = safe_unit(a_meas)
-
-                e_axis: Vec3 = np.cross(g_pred, a_unit)
-                dq_corr: Quat = small_angle_correction_quat(K, e_axis)
-
-                q = libq.quat_norm(libq.quat_mul(q_pred, dq_corr))
-                res[i] = q
-
-                g_body_est[i] = libq.rotate_world_to_body(q, g_world_unit) * g0
-                a_lin_est[i] = a_src[i] + g_body_est[i]
-        return res, g_body_est, a_lin_est
-
 def calc_acc_gating(g0: float, acc_sigma: float, a_meas: Vec3) -> float:
         if not np.isfinite(acc_sigma) or acc_sigma <= 0:
                 return 1
@@ -83,42 +51,6 @@ def calc_acc_gating(g0: float, acc_sigma: float, a_meas: Vec3) -> float:
         weight_acc : float = np.exp(-0.5 * (dev / acc_sigma) ** 2)
         return weight_acc
 
-def integrate_gyro_acc_with_gate_acc(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
-                       K: float, g0: float, g_world_unit: Vec3,
-                       acc_gate_sigma: float, a_src: Vec3Batch
-                       ) -> tuple[QuatBatch, Vec3Batch, Vec3Batch, ScalarBatch]:
-        """
-        Returns:
-                res (q_gyro_acc): (N,4) QuatBatch
-                g_body_est: (N,3) Vec3Batch
-                a_lin_est: (N,3) Vec3Batch
-                weight_acc: (N,) ScalarBatch
-        """
-        q: Quat = q0.copy()
-        res: QuatBatch = as_quat_batch(np.zeros((len(dt), 4)))
-        g_body_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
-        a_lin_est: Vec3Batch = as_vec3_batch(np.zeros((len(dt), 3)))
-        weight_acc: ScalarBatch = as_scalar_batch(np.zeros((len(dt),)))
-
-        for i in range(len(dt)):
-                q_pred: Quat = gyro_predict(q, w_avg[i], dt[i])
-
-                g_pred: Vec3 = predict_gravity_body_frame(q_pred, g_world_unit)
-                a_meas: Vec3 = select_acc_measurement(a_src[i].copy(), g_pred.copy())
-                a_unit: Vec3 = safe_unit(a_meas)
-
-                weight_acc[i] = calc_acc_gating(g0, acc_gate_sigma, a_meas)
-
-                e_axis: Vec3 = np.cross(g_pred, a_unit)
-                dq_corr: Quat = small_angle_correction_quat(K * weight_acc[i], e_axis)
-
-                q = libq.quat_norm(libq.quat_mul(q_pred, dq_corr))
-                res[i] = q
-
-                g_body_est[i] = libq.rotate_world_to_body(q, g_world_unit) * g0
-                a_lin_est[i] = a_src[i] + g_body_est[i]
-        return res, g_body_est, a_lin_est, weight_acc
-
 def calc_gyro_gating(gyro_sigma: float, w: Vec3) -> float:
         if not np.isfinite(gyro_sigma) or gyro_sigma <= 0:
                 return 1
@@ -126,7 +58,7 @@ def calc_gyro_gating(gyro_sigma: float, w: Vec3) -> float:
         weight_gyro: float = np.exp(-0.5 * (w_norm / gyro_sigma) ** 2)
         return weight_gyro
 
-def integrate_gyro_acc_with_gate_gyro_acc(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
+def integrate_gyro_acc(q0: Quat, w_avg: Vec3Batch, dt: ScalarBatch,
                        K: float, g0: float, g_world_unit: Vec3,
                        acc_gate_sigma: float, gyro_gate_sigma: float, a_src: Vec3Batch
                        ) -> tuple[QuatBatch, Vec3Batch, Vec3Batch, ScalarBatch, ScalarBatch]:
@@ -164,7 +96,6 @@ def integrate_gyro_acc_with_gate_gyro_acc(q0: Quat, w_avg: Vec3Batch, dt: Scalar
                 g_body_est[i] = libq.rotate_world_to_body(q, g_world_unit) * g0
                 a_lin_est[i] = a_src[i] + g_body_est[i]
         return res, g_body_est, a_lin_est, weight_acc, weight_gyro
-
 
 
 
