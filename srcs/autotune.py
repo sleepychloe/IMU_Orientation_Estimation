@@ -182,9 +182,10 @@ def choose_tau_from_quasi_static(dt: ScalarBatch, runner_func: Callable[[float],
         dt_midean: float = float(np.median(dt))
 
         if best_quasi_static is None:
-                return 0.25,[{"tau": 0.25, "K": float(dt_midean / 0.25)}]
+                s, e = 0, len(dt)
+        else:
+                s, e, _ = best_quasi_static
 
-        s, e, _ = best_quasi_static
         tau_table: list[dict[str, Any]] = []
         for tau in tau_candidates:
                 K = float(dt_midean / tau)
@@ -211,7 +212,8 @@ def choose_tau_from_quasi_static(dt: ScalarBatch, runner_func: Callable[[float],
                         "quasi_static_score_mean_angle(rad)": score})
         tau_table.sort(key=lambda d: d["quasi_static_score_mean_angle(rad)"])
         best_tau: float = tau_table[0]["tau"]
-        return tau_table, best_tau, K
+        best_K: float = tau_table[0]["K"]
+        return tau_table, best_tau, best_K
 
 def calc_sigma(base: float, scale: float) -> float:
         if np.isinf(base) or np.isinf(scale):

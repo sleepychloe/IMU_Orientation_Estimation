@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from my_types import Quat, ScalarBatch, Vec3Batch, QuatBatch
 from my_types import as_scalar_batch, as_vec3_batch
 import lib_quat as libq
+from pipelines import safe_unit
 
 """
 Calculating relative rotation (error quaternion)
@@ -154,3 +155,12 @@ def save_estimated_vec3_csv(path: Path, t: ScalarBatch, vec3_batch: Vec3Batch) -
                 "z": vec3_batch[:,2].astype(np.float64)
 	})
         df.to_csv(path, index=False)
+
+def calc_vec3_direction_angle_err(est: Vec3Batch, ref: Vec3Batch) -> ScalarBatch:
+        norm_est: Vec3Batch = safe_unit(est)
+        norm_ref: Vec3Batch = safe_unit(ref)
+
+        dot: ScalarBatch = np.sum(norm_est * norm_ref, axis=1)
+        dot = np.clip(dot, -1, 1)
+        err: ScalarBatch = np.arccos(dot)
+        return err

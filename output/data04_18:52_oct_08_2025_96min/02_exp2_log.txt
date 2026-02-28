@@ -1,15 +1,15 @@
 
 
-[START] 2026-02-28 01:20:49.921
+[START] 2026-02-28 20:10:25.905
 
 [INFO] Stabilization detected too early (< min_cut), applying min_cut=10s policy
 
-[END] 2026-02-28 01:20:54.361
+[END] 2026-02-28 20:10:29.698
 
 
 
 
-[START] 2026-02-28 01:20:54.386
+[START] 2026-02-28 20:10:29.708
 
 Detected accel unit in [g] → converting to [m/s²]
 Selected g_world_unit: [0 0 1]
@@ -19,12 +19,12 @@ Best quasi static(start, end, length):  (252162, 310194, 58032)
 Suggested gyro_sigma:  0.27528854262917185
 Suggested acc_sigma:  0.507068924693965
 
-[END] 2026-02-28 01:20:55.739
+[END] 2026-02-28 20:10:30.331
 
 
 
 
-[START] 2026-02-28 01:20:58.307
+[START] 2026-02-28 20:10:31.958
 
 tau=0.2 , K=0.05029418945468933 , quasi_static_score_mean_angle(rad)=0.09815857026762112
 tau=0.3 , K=0.033529459636459556 , quasi_static_score_mean_angle(rad)=0.09684768030189674
@@ -48,12 +48,12 @@ gyro_gate_sigma=inf
 [exp 2-1] Gyro+Acc angle error in deg — min/max/mean/p90
 0.1701289375480666 179.90189593180372 49.23849280241658 114.68462240201954
 
-[END] 2026-02-28 01:37:43.965
+[END] 2026-02-28 20:21:32.331
 
 
 
 
-[START] 2026-02-28 01:37:43.993
+[START] 2026-02-28 20:21:32.344
 
 [choosing tau, K]
 tau=0.2 , K=0.05029418945468933 , quasi_static_score_mean_angle(rad)=0.09713768983328361
@@ -86,12 +86,12 @@ gyro_gate_sigma=inf
 [exp 2-2] Gyro+Acc+Gating(Acc) angle error in deg — min/max/mean/p90
 0.1701289375480666 179.90189593180372 49.23849280241658 114.68462240201954
 
-[END] 2026-02-28 02:00:08.776
+[END] 2026-02-28 20:37:12.914
 
 
 
 
-[START] 2026-02-28 02:00:08.802
+[START] 2026-02-28 20:37:12.930
 
 [choosing tau, K]
 tau=0.2 , K=0.05029418945468933 , quasi_static_score_mean_angle(rad)=0.09625401069941508
@@ -132,6 +132,36 @@ sg=inf,  gyro_gate_sigma=inf
 [exp 2-3] Gyro+Acc+Gating(Gyro/Acc) angle error in deg — min/max/mean/p90
 0.1701289375480666 179.90189593180372 49.23849280241658 114.68462240201954
 
-[END] 2026-02-28 02:31:30.110
+[END] 2026-02-28 20:59:52.226
+
+
+
+
+[START] 2026-02-28 21:01:15.281
+
+[Gravity]
+RMSE norm: 0.34626176727215563
+
+Gravity est/ref angle error in rad — min/max/mean/p90
+1.5707945887311299 1.5707946273423095 1.5707945898149172 1.5707945918245096
+
+Gravity est/ref angle error in deg — min/max/mean/p90
+89.99990041628165 89.99990262853927 89.99990047837808 89.99990059351924
+
+
+[Linear accel]
+RMSE norm: 0.6593208369308915
+
+Linear accel est/ref angle error in rad — min/max/mean/p90
+1.5695667860816647 1.5708208165652624 1.5707946480829231 1.5707963214777023
+
+Linear accel est/ref angle error in deg — min/max/mean/p90
+89.92955250639231 90.0014031604832 89.9999038168889 89.99999969534721
+
+
+[Consistency ratio]
+rmse_norm of (a_lin_est / g_est):  1.9041109913029381
+
+[END] 2026-02-28 21:01:21.393
 
 
