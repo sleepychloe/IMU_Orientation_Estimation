@@ -243,15 +243,20 @@ Gating improves robustness by suppressing bad accel updates.<br>
 | exp 2-2 |  0.2  | 0.049993896484466 | inf (not applied) |         0.6755996 |
 | exp 2-3 |  0.2  | 0.049993896484466 | inf (not applied) |         0.6755996 |
 
+** Note: suggested sigmas are reported for reference. the selected run may disable gating (σ=inf) when it does not improve the score<br>
+
 <br>
 
 ##### [Metrics]
 
 |         |  Mean error  |  p90 error   |
 |:-------:|-------------:|-------------:|
+| exp 1-2 | <ul><li>0.53778 rad</li><li>30.81266 deg</li></ul> | <ul><li>0.81277 rad</li><li>46.56837 deg</li></ul> |
 | exp 2-1 | <ul><li>0.40981 rad</li><li>23.48033 deg</li></ul> | <ul><li>0.75477 rad</li><li>43.24533 deg</li></ul> |
 | exp 2-2 | <ul><li>0.37464 rad</li><li>21.46521 deg</li></ul> | <ul><li>0.56815 rad</li><li>32.55285 deg</li></ul> |
 | exp 2-3 | <ul><li>0.37464 rad</li><li>21.46521 deg</li></ul> | <ul><li>0.56815 rad</li><li>32.55285 deg</li></ul> |
+
+** `exp 1-2` refers to the gyro-only baseline from experiment 1, evaluated on the same trimmed segment.<br>
 
 <br>
 
