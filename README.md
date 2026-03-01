@@ -221,11 +221,11 @@ Experiment 1 confirms:<br>
 
 ### Experiment 2 — Gyro + Accelerometer <a name="exp-2"></a>
 
-<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp2/data04_exp2_01.png" width="952" height="311">
+<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp2/data03_exp2_01.png" width="952" height="311">
 
-<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp2/data04_exp2_02.png" width="952" height="311">
+<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp2/data03_exp2_02.png" width="952" height="311">
 
-<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp2/data04_exp2_03.png" width="952" height="471">
+<img src="https://github.com/sleepychloe/IMU_Orientation_Estimation/blob/main/img/exp2/data03_exp2_03.png" width="952" height="471">
 
 This dataset is a clean demonstration of why gating matters.<br>
 Accelerometer correction helps overall, but blindly trusting accel can be unstable when linear accel is strong.<br>
